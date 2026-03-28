@@ -13,10 +13,10 @@ public class Menu(RentalService svc)
         var overdue = _svc.UpdateOverdueStatuses();
         if (overdue > 0)
             Warn($"Warning {overdue} rentals marked overdue.");
-
+        Console.WriteLine("Welcome in PJATK rental service.");
         while (true)
         {
-            Console.WriteLine("Press enter to continue");
+            Console.WriteLine("Press enter to continue.");
             Console.ReadLine()?.Trim();
 
             Console.WriteLine();
