@@ -29,6 +29,9 @@ public class Menu(RentalService svc)
             Console.WriteLine("  6  Add device");
             Console.WriteLine("  7  Add user");
             Console.WriteLine("  8  Disable/enable device");
+            Console.WriteLine("  9  List rentals by user");
+            Console.WriteLine("  a  List overdue rentals");
+            Console.WriteLine("  b  Generate report");
             Console.WriteLine("  0  Exit");
             Console.Write("\nChoice › ");
 
@@ -58,6 +61,15 @@ public class Menu(RentalService svc)
                 case "8":
                     ToggleDevice();
                     break;
+                case "9":
+                    ListUsersRentals();
+                    break;
+                case "a":
+                    ListOverdueRentals();
+                    break;
+                case "b":
+                    GenerateReport();
+                    break;
                 case "0":
                     return;
                 default:  Warn("Unknown option — try again."); break;
@@ -65,7 +77,13 @@ public class Menu(RentalService svc)
         }
     }
 
-
+    private void GenerateReport()
+    {
+        Header($"Report for {DateTime.UtcNow}");
+        ListActiveRentals();
+        ListOverdueRentals();
+        ListDevices();
+    }
     private void ListDevices()
     {
         Header("All devices");
@@ -110,7 +128,54 @@ public class Menu(RentalService svc)
             var device = deviceMap.GetValueOrDefault(r.DeviceID, r.DeviceID[..8]);
             var tag = r.IsOverdue ? "  OVERDUE" : string.Empty;
             var color = r.IsOverdue ? ConsoleColor.Red : ConsoleColor.Gray;
-            Print($"  [{r.ID[..8]}]  {user,-20} → {device,-28} due {r.DueDate:yyyy-MM-dd}{tag}", color);
+            Print($"  [{r.ID[..8]}]  {user,-20} -> {device,-28} due {r.DueDate:yyyy-MM-dd}{tag}", color);
+        }
+    }
+
+    private void ListOverdueRentals()
+    {
+        Header("Overdue rentals");
+        var userMap = _svc.GetAllUsers().ToDictionary(u => u.ID, u => u.Name);
+        var deviceMap = _svc.GetAllDevices().ToDictionary(d => d.ID, d => d.Name);
+
+        var overdue = _svc.GetOverdueRentals();
+        if (!overdue.Any()) {
+            Console.WriteLine("  no overdue rentals");
+            return;
+        }
+
+        foreach (var r in overdue)
+        {
+            var user = userMap.GetValueOrDefault(r.UserID,   r.UserID[..8]);
+            var device = deviceMap.GetValueOrDefault(r.DeviceID, r.DeviceID[..8]);
+            var tag = r.IsOverdue ? "  OVERDUE" : string.Empty;
+            var color = r.IsOverdue ? ConsoleColor.Red : ConsoleColor.Gray;
+            Print($"  [{r.ID[..8]}]  {user,-20} -> {device,-28} due {r.DueDate:yyyy-MM-dd}{tag}", color);
+        }
+    }
+
+    private void ListUsersRentals()
+    {
+        ListUsers();
+        var user = PickById("User ID prefix", _svc.GetAllUsers());
+        if (user is null) return;
+
+        Header($"Users {user.ID} rentals");
+        var userMap = _svc.GetAllUsers()  .ToDictionary(u => u.ID, u => u.Name);
+        var deviceMap = _svc.GetAllDevices().ToDictionary(d => d.ID, d => d.Name);
+
+        var users = _svc.GetUserRentals(user.ID);
+        if (!users.Any()) {
+            Console.WriteLine("  no active rentals");
+            return;
+        }
+
+        foreach (var r in users)
+        {
+            var device = deviceMap.GetValueOrDefault(r.DeviceID, r.DeviceID[..8]);
+            var tag = r.IsOverdue ? "  OVERDUE" : string.Empty;
+            var color = r.IsOverdue ? ConsoleColor.Red : ConsoleColor.Gray;
+            Print($"  [{r.ID[..8]}]  {user,-20} -> {device,-28} due {r.DueDate:yyyy-MM-dd}{tag}", color);
         }
     }
 

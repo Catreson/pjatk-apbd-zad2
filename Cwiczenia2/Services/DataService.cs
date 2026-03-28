@@ -21,7 +21,7 @@ public class DataService
         WriteIndented = true,
     };
 
-    public DataStore Load()
+    public static DataStore Load()
     {
         if (!File.Exists(FilePath))
         {

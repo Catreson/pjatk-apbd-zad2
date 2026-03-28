@@ -86,6 +86,8 @@ public class RentalService(DataStore store, DataService data)
     public RentalResult Return(string rentalId)
     {
         var rental = _store.Rentals.FirstOrDefault(r => r.ID == rentalId);
+        var overdue = (rental?.IsOverdue) ?? false;
+        var penalty = rental?.CalculatePenalty ?? 0;
         if (rental is null) return Fail("Fail: Rental was not found.");
         if (rental.Status != RentalStatus.Active) return Fail("Fail: Rental is not active.");
 
@@ -95,7 +97,8 @@ public class RentalService(DataStore store, DataService data)
         rental.ReturnedAt = DateTime.UtcNow;
         rental.Status = RentalStatus.Returned;
         DataService.Save(_store);
-
+        if (overdue)
+            return new(true, $"OK: '{device?.Name ?? rental.DeviceID}' returned successfully with overdue and penalty {penalty} PLN.");
         return new(true, $"OK: '{device?.Name ?? rental.DeviceID}' returned successfully.");
     }
 
@@ -121,6 +124,8 @@ public class RentalService(DataStore store, DataService data)
     public IReadOnlyList<Rental> GetAllRentals()    => _store.Rentals.AsReadOnly();
     public IReadOnlyList<Rental> GetActiveRentals() =>
         _store.Rentals.Where(r => r.Status == RentalStatus.Active).ToList();
+    public IReadOnlyList<Rental> GetOverdueRentals() =>
+        _store.Rentals.Where(r => r.Status == RentalStatus.Overdue).ToList();
     public IReadOnlyList<Rental> GetUserRentals(string userId) =>
         _store.Rentals.Where(r => r.UserID == userId).ToList();
 
