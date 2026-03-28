@@ -13,7 +13,8 @@ public class DataStore
 }
 public class DataService
 {
-    private const string FilePath = "data.json";
+    private static readonly string FilePath = 
+        Path.Combine(AppContext.BaseDirectory, "data.json");
 
     private static readonly JsonSerializerOptions Options = new()
     {
