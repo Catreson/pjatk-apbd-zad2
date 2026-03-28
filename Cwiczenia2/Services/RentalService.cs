@@ -11,6 +11,8 @@ public class RentalService(DataStore store, DataService data)
     private readonly DataStore _store = store;
     private readonly DataService _data = data;
 
+    private readonly int PenaltyValue = 5;
+
     public IReadOnlyList<Device> GetAllDevices() => _store.Devices.AsReadOnly();
     public IReadOnlyList<Device> GetAvailableDevices() =>
         _store.Devices.Where(d => d.Status == DeviceStatus.Available).ToList();
@@ -39,6 +41,11 @@ public class RentalService(DataStore store, DataService data)
         device.Status = underMaintenance ? DeviceStatus.Unavailable : DeviceStatus.Available;
         DataService.Save(_store);
         return true;
+    }
+
+    public int CalculatePenalty(Rental rental)
+    {
+        return rental.IsOverdue ? (int)(rental.DueDate - DateTime.UtcNow).TotalDays * PenaltyValue : 0;
     }
 
     public IReadOnlyList<User> GetAllUsers() => _store.Users.AsReadOnly();
@@ -86,10 +93,12 @@ public class RentalService(DataStore store, DataService data)
     public RentalResult Return(string rentalId)
     {
         var rental = _store.Rentals.FirstOrDefault(r => r.ID == rentalId);
+        if (rental is null)
+            return Fail("Fail: Rental was not found.");
+            
         var overdue = (rental?.IsOverdue) ?? false;
-        var penalty = rental?.CalculatePenalty ?? 0;
-        if (rental is null) return Fail("Fail: Rental was not found.");
-        if (rental.Status != RentalStatus.Active) return Fail("Fail: Rental is not active.");
+        var penalty = rental is null ? 0 : CalculatePenalty(rental);
+        if (rental?.Status != RentalStatus.Active) return Fail("Fail: Rental is not active.");
 
         var device = FindDevice(rental.DeviceID);
         device?.Status = DeviceStatus.Available;

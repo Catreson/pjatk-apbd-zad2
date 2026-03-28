@@ -14,7 +14,4 @@ public class Rental
 
     public bool IsOverdue =>
         Status == RentalStatus.Active && DateTime.UtcNow > DueDate;
-
-    public int CalculatePenalty =>
-        IsOverdue ? (int)(DueDate - DateTime.UtcNow).TotalDays * PenaltyValue : 0;
 }
