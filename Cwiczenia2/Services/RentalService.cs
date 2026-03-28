@@ -90,13 +90,32 @@ public class RentalService(DataStore store, DataService data)
         if (rental.Status != RentalStatus.Active) return Fail("Fail: Rental is not active.");
 
         var device = FindDevice(rental.DeviceID);
-        if (device is not null) device.Status = DeviceStatus.Available;
+        device?.Status = DeviceStatus.Available;
 
         rental.ReturnedAt = DateTime.UtcNow;
         rental.Status = RentalStatus.Returned;
         DataService.Save(_store);
 
         return new(true, $"OK: '{device?.Name ?? rental.DeviceID}' returned successfully.");
+    }
+
+    public RentalResult Toggle(string deviceId)
+    {
+        var device = FindDevice(deviceId);
+
+        if (device is null)
+            return Fail("Fail: Device not found.");
+        if (device.Status == DeviceStatus.Rented)
+            return Fail($"Fail: Device is currently {device.Status} and cannot be disabled.");
+        if (device.Status == DeviceStatus.Available) {
+            device.Status = DeviceStatus.Unavailable;
+            return new(true, $"OK: '{device?.ID}' disabled successfully.");
+        }
+        else if (device.Status == DeviceStatus.Unavailable) {
+            device.Status = DeviceStatus.Available;
+            return new(true, $"OK: '{device?.ID}' enabled successfully.");
+        }
+        return Fail($"Fail: Device {device?.ID} cannot be toggled.");
     }
 
     public IReadOnlyList<Rental> GetAllRentals()    => _store.Rentals.AsReadOnly();
